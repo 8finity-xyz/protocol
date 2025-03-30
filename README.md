@@ -21,6 +21,7 @@ event NewProblem(uint256 privateKeyA, uint160 difficulty);
 ```
 
 2. Search `privateKeyB` that fits equation `uint160(addressAB ^ MAGIC_NUMBER) < difficulty`, where:
+- `MAGIC_NUMBER` - `0x8888888888888888888888888888888888888888`
 - `addressAB` - evm address from `publicKeyAB`
 - `publicKeyAB` - public key, calculated with private key `privateKeyAB`
 - `privateKeyAB` - private key, sum of `privateKeyA`, `privateKeyB`*
