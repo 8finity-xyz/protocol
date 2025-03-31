@@ -32,8 +32,8 @@ describe("secp256k1", function () {
 
     it("should correct calculate ec point sum", async function () {
         const lib = await loadFixture(deploy)
-        const { point: point1, privateKey: privateKey1 } = genKeys()
-        const { point: point2, privateKey: privateKey2 } = genKeys()
+        const { point: point1 } = genKeys()
+        const { point: point2 } = genKeys()
 
         const point12 = point1.add(point2)
 
@@ -50,5 +50,18 @@ describe("secp256k1", function () {
         expect(
             await lib.secp256k1.toAddress(point)
         ).to.be.eq(address)
+    })
+
+    it("should be commutative for ecAdd", async function () {
+        const lib = await loadFixture(deploy)
+        const { point: point1 } = genKeys()
+        const { point: point2 } = genKeys()
+
+        expect(
+            await lib.secp256k1.ecAdd(point1, point2)
+        ).to.be.deep.eq(
+            await lib.secp256k1.ecAdd(point2, point1)
+        )
+
     })
 })
