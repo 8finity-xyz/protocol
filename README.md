@@ -26,7 +26,7 @@ event NewProblem(uint256 privateKeyA, uint160 difficulty);
 - `publicKeyAB` - public key, calculated with private key `privateKeyAB`
 - `privateKeyAB` - private key, sum of `privateKeyA`, `privateKeyB`*
 - `privateKeyB` - random private key (uint256 number)
- *you should use modulo of sum `(privateKeyA  +  privateKeyB) %  0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f`
+ *you should use modulo of sum `(privateKeyA  +  privateKeyB) %  0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141`
 
 3. Signature message by `privateKeyAB`. Message should consist of reward recipient and data (any set of bytes, can be empty). Message should be signed using [EIP-191](https://eips.ethereum.org/EIPS/eip-191)
 
