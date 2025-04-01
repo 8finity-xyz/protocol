@@ -7,6 +7,7 @@ import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Pau
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {IPoW} from "./IPoW.sol";
@@ -23,11 +24,13 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         IERC20(0x888852d1c63c7b333efEb1c4C5C79E36ce918888);
 
     // all constants hardcoded, because we can't set it after mining starts
-    uint256 constant REDUCE_PERIOD = 672500;
-    uint256 constant REDUCE_COUNT = 50;
-    uint256 constant REDUCE_DENOM = 1147202690439877120; // int(3**(1/8) * 1e18)
+    uint256 constant REWARD_REDUCE_PERIOD = 672500;
+    uint256 constant REWARD_REDUCE_COUNT = 50;
+    uint256 constant REWARD_REDUCE_DENOM = 1147202690439877120; // int(3**(1/8) * 1e18)
+    uint256 constant MAX_DIFFICULTY_INCRESE = 8;
     uint256 constant SPEED_TARGET_TIME = 200;
     uint256 constant SPEED_PERIOD = 100;
+    uint256 constant PARALLEL_SUBMITS_COUNT = 100;
 
     // mining info
     uint256 public numSubmissions;
@@ -38,6 +41,9 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     uint160 public difficulty;
 
     mapping(uint256 => uint256) _submissionBlocks;
+
+    uint256 _nextPrivateKeyA;
+    uint256 public problemNonce;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -85,7 +91,7 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
                 address(difficulty ^ uint160(MAGIC_NUMBER))
             );
         }
-        emit Submission(addressAB, data);
+        emit Submission(msg.sender, addressAB, reward, data);
 
         // checking, that solver really found privateKeyB
         require(
@@ -97,15 +103,29 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         );
 
         INFINITY.transfer(recipient, reward);
-        privateKeyA = uint256(
-            keccak256(abi.encodePacked(publicKeyB.x, publicKeyB.y))
+        _nextPrivateKeyA = uint256(
+            keccak256(
+                abi.encodePacked(_nextPrivateKeyA, publicKeyB.x, publicKeyB.y)
+            )
         );
 
-        _ajustDifficulty();
-        _reduceReward();
-        numSubmissions += 1;
+        if ((numSubmissions + 1) % PARALLEL_SUBMITS_COUNT == 0) {
+            _ajustDifficulty();
+            _reduceReward();
 
-        emit NewProblem(privateKeyA, difficulty);
+            privateKeyA = _nextPrivateKeyA;
+            emit NewProblem(problemNonce++, privateKeyA, difficulty);
+        }
+
+        numSubmissions += 1;
+    }
+
+    function currentProblem()
+        external
+        view
+        returns (uint256, uint256, uint160)
+    {
+        return (problemNonce, privateKeyA, difficulty);
     }
 
     function _ajustDifficulty() internal {
@@ -118,8 +138,10 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         // We store info only for last transactions
         delete _submissionBlocks[numSubmissions - SPEED_PERIOD];
 
-        uint256 ajustedDifficulty = (uint256(difficulty) * realTime) /
-            SPEED_TARGET_TIME;
+        uint256 ajustedDifficulty = Math.max(
+            (uint256(difficulty) * realTime) / SPEED_TARGET_TIME,
+            difficulty / MAX_DIFFICULTY_INCRESE
+        );
 
         if (ajustedDifficulty > type(uint160).max) {
             difficulty = type(uint160).max;
@@ -129,12 +151,13 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     }
 
     function _reduceReward() internal {
-        if (numSubmissions == 0 || numSubmissions % REDUCE_PERIOD != 0) return;
+        if (numSubmissions == 0 || numSubmissions % REWARD_REDUCE_PERIOD != 0)
+            return;
 
-        uint256 reduceCounts = numSubmissions / REDUCE_PERIOD;
-        if (reduceCounts > REDUCE_COUNT) return;
+        uint256 reduceCounts = numSubmissions / REWARD_REDUCE_PERIOD;
+        if (reduceCounts > REWARD_REDUCE_COUNT) return;
 
-        reward = (reward * 1e18) / REDUCE_DENOM;
+        reward = (reward * 1e18) / REWARD_REDUCE_DENOM;
         emit RewardReduced(reward);
     }
 }

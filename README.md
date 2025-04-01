@@ -14,11 +14,14 @@
 
 You can get current values with contract read or listen event with new values
 ```solidity
-function privateKeyA() external view returns (uint256);
-function difficulty() external view returns (uint160);
+    function currentProblem()
+        external
+        view
+        returns (uint256 nonce, uint256 privateKeyA, uint160 difficulty);
 
-event NewProblem(uint256 privateKeyA, uint160 difficulty);
+event NewProblem(uint256 nonce, uint256 privateKeyA, uint160 difficulty);
 ```
+💡 you can use nonce for validate, that you don't miss any problem. Nonce increments by 1 on every new problem by.
 
 2. Search `privateKeyB` that fits equation `uint160(addressAB ^ MAGIC_NUMBER) < difficulty`, where:
 - `MAGIC_NUMBER` - `0x8888888888888888888888888888888888888888`
@@ -28,12 +31,21 @@ event NewProblem(uint256 privateKeyA, uint160 difficulty);
 - `privateKeyB` - random private key (uint256 number)
  *you should use modulo of sum `(privateKeyA  +  privateKeyB) %  0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141`
 
-3. Signature message by `privateKeyAB`. Message should consist of reward recipient and data (any set of bytes, can be empty). Message should be signed using [EIP-191](https://eips.ethereum.org/EIPS/eip-191)
+3. Sign message by `privateKeyAB`. Message should consist of reward recipient and data (any set of bytes, can be empty). Message should be signed using [EIP-191](https://eips.ethereum.org/EIPS/eip-191)
 
-#### How to construct message:
+<details>
+<summary>How to construct message</summary>
 ethers.js
 ```javascript
 ethers.solidityPackedKeccak256(
+    ["address", "bytes"],
+    [recipient, data]
+)
+```
+
+web3.py
+```
+w3.solidity_keccak(
     ["address", "bytes"],
     [recipient, data]
 )
@@ -53,3 +65,5 @@ PoW.submit(
     data, // used in message in #3
 );
 ```
+
+:warning:

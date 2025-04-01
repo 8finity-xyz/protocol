@@ -44,16 +44,13 @@ describe("PoW", function () {
         const { pow, infinity, submitter, rewardReciever } = await loadFixture(deploy)
         const MAGIC_NUMBER = 0x8888888888888888888888888888888888888888n;
 
-        let privateKeyA = await pow.privateKeyA();
-        let difficulty = await pow.difficulty();
-        let privateKeyB = 1n;
-
-        while (true) {
-            privateKeyB++;
-            const accountB = new ethers.Wallet(pk2hex(privateKeyB));
+        const privateKeyA = await pow.privateKeyA();
+        const difficulty = await pow.difficulty();
+        while (await pow.numSubmissions() < 100n) {
+            const accountB = ethers.Wallet.createRandom();
             const publicKeyB = secp256k1.ProjectivePoint.fromHex(accountB.signingKey.publicKey.substring(2))
 
-            const privateKeyAB = (privateKeyA + privateKeyB) % secp256k1.CURVE.p;
+            const privateKeyAB = (privateKeyA + BigInt(accountB.signingKey.privateKey)) % secp256k1.CURVE.n;
             const accountAB = new ethers.Wallet(pk2hex(privateKeyAB));
 
             if ((BigInt(accountAB.address) ^ MAGIC_NUMBER) >= difficulty) {
@@ -74,10 +71,14 @@ describe("PoW", function () {
                 await accountAB.signMessage(messageHash),
                 data
             )
-            await expect(tx).to.be.not.reverted
+            await tx
+
             await expect(tx).changeTokenBalance(infinity, rewardReciever, reward)
-            break
         }
+
+        expect(await pow.problemNonce()).to.be.eq(1)
+        expect(await pow.privateKeyA()).to.be.not.eq(privateKeyA);
+        expect(await pow.difficulty()).to.be.not.eq(difficulty / 2n);
     })
 
 });
