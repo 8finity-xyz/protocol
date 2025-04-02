@@ -67,13 +67,18 @@ describe("PoW", function () {
             const reward = await pow.reward();
             const tx = pow.connect(submitter).submit(
                 rewardReciever,
-                { x: publicKeyB.px, y: publicKeyB.py },
+                publicKeyB,
                 await accountAB.signMessage(messageHash),
                 data
             )
-            await tx
-
             await expect(tx).changeTokenBalance(infinity, rewardReciever, reward)
+
+            await expect(pow.connect(submitter).submit(
+                rewardReciever,
+                publicKeyB,
+                await accountAB.signMessage(messageHash),
+                data
+            )).to.be.reverted
         }
 
         expect(await pow.problemNonce()).to.be.eq(1)

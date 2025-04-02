@@ -44,6 +44,7 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
 
     uint256 _nextPrivateKeyA;
     uint256 public problemNonce;
+    mapping(address => bool) _submissions;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -91,6 +92,9 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
                 address(difficulty ^ uint160(MAGIC_NUMBER))
             );
         }
+
+        require(!_submissions[addressAB], AlreadySubmitted(addressAB));
+        _submissions[addressAB] = true;
         emit Submission(msg.sender, addressAB, reward, data);
 
         // checking, that solver really found privateKeyB

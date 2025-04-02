@@ -32,7 +32,32 @@ const config: HardhatUserConfig = {
       chainId: 57054,
       accounts
     }
-  }
+  },
+  etherscan: {
+    apiKey: {
+      sonic: process.env.SONICSCAN_API_KEY!,
+      sonicBlazeTestnet: process.env.SONICSCAN_API_KEY!,
+    },
+    customChains: [
+      {
+        network: "sonic",
+        chainId: 146,
+        urls: {
+          apiURL: "https://api.sonicscan.org/api",
+          browserURL: "https://sonicscan.org"
+        }
+      },
+      {
+        network: "sonicBlazeTestnet",
+        chainId: 57054,
+        urls: {
+          apiURL: "https://api-testnet.sonicscan.org/api",
+          browserURL: "https://testnet.sonicscan.org"
+        }
+      }
+    ]
+  },
+
 };
 
 export default config;

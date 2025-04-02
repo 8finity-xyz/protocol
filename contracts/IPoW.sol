@@ -13,6 +13,7 @@ interface IPoW {
 
     error BadSolution(address addressAB, address target);
     error BadSignature();
+    error AlreadySubmitted(address addressAB);
 
     function currentProblem()
         external
