@@ -14,10 +14,10 @@
 
 You can get current values with contract read or listen event with new values
 ```solidity
-    function currentProblem()
-        external
-        view
-        returns (uint256 nonce, uint256 privateKeyA, uint160 difficulty);
+function currentProblem()
+    external
+    view
+    returns (uint256 nonce, uint256 privateKeyA, uint160 difficulty);
 
 event NewProblem(uint256 nonce, uint256 privateKeyA, uint160 difficulty);
 ```
