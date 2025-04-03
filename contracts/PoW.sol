@@ -118,7 +118,7 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
             _reduceReward();
 
             privateKeyA = _nextPrivateKeyA;
-            emit NewProblem(problemNonce++, privateKeyA, difficulty);
+            emit NewProblem(++problemNonce, privateKeyA, difficulty);
         }
 
         numSubmissions += 1;
