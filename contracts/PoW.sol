@@ -25,7 +25,6 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
 
     // all constants hardcoded, because we can't set it after mining starts
     uint256 constant REWARD_REDUCE_PERIOD = 672500;
-    uint256 constant REWARD_REDUCE_COUNT = 50;
     uint256 constant REWARD_REDUCE_DENOM = 1147202690439877120; // int(3**(1/8) * 1e18)
     uint256 constant MAX_DIFFICULTY_INCRESE = 8;
     uint256 constant SPEED_TARGET_TIME = 200;
@@ -157,9 +156,6 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     function _reduceReward() internal {
         if (numSubmissions == 0 || numSubmissions % REWARD_REDUCE_PERIOD != 0)
             return;
-
-        uint256 reduceCounts = numSubmissions / REWARD_REDUCE_PERIOD;
-        if (reduceCounts > REWARD_REDUCE_COUNT) return;
 
         reward = (reward * 1e18) / REWARD_REDUCE_DENOM;
         emit RewardReduced(reward);
