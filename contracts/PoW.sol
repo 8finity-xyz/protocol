@@ -60,6 +60,11 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         _pause();
     }
 
+    function initialize3() external reinitializer(3) {
+        reward = (reward * 1e18) / REWARD_REDUCE_DENOM;
+        emit RewardReduced(reward);
+    }
+
     function startMining(uint256 startReward) external onlyOwner {
         _requirePaused();
         _unpause();
@@ -112,15 +117,14 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
             )
         );
 
-        if ((numSubmissions + 1) % PARALLEL_SUBMITS_COUNT == 0) {
+        numSubmissions += 1;
+        if (numSubmissions % PARALLEL_SUBMITS_COUNT == 0) {
             _ajustDifficulty();
             _reduceReward();
 
             privateKeyA = _nextPrivateKeyA;
             emit NewProblem(++problemNonce, privateKeyA, difficulty);
         }
-
-        numSubmissions += 1;
     }
 
     function currentProblem()
