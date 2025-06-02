@@ -11,6 +11,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {IPoW} from "./IPoW.sol";
+import {IPoolRegistry} from "./IPoolRegistry.sol";
 import {secp256k1, ECCPoint} from "./secp256k1.sol";
 
 contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
@@ -45,6 +46,8 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
     uint256 public problemNonce;
     mapping(address => bool) _submissions;
 
+    IPoolRegistry public poolRegistry;
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -74,6 +77,10 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         difficulty = uint160(0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF);
     }
 
+    function setPoolRegistry(IPoolRegistry poolRegistry_) external onlyOwner {
+        poolRegistry = poolRegistry_;
+    }
+
     function _authorizeUpgrade(
         address newImplementation
     ) internal override onlyOwner {}
@@ -84,11 +91,43 @@ contract PoW is IPoW, UUPSUpgradeable, OwnableUpgradeable, PausableUpgradeable {
         bytes memory signatureAB,
         bytes calldata data
     ) external whenNotPaused {
-        // Process submition
         address addressAB = publicKeyB
             .ecAdd(privateKeyA.toPublicKey())
             .toAddress();
 
+        _processSubmit(addressAB, recipient, publicKeyB, signatureAB, data);
+    }
+
+    function poolSubmit(
+        ECCPoint memory publicKeyB,
+        bytes memory signatureAB,
+        bytes calldata data
+    ) external whenNotPaused {
+        require(address(poolRegistry) != address(0), PoolsDisabled());
+        uint256 poolId = poolRegistry.getPoolId(msg.sender);
+
+        address addressAB = publicKeyB
+            .ecAdd(privateKeyA.toPublicKey())
+            .ecAdd(poolId.toPublicKey())
+            .toAddress();
+
+        poolRegistry._notifyReward(poolId, reward);
+        _processSubmit(
+            addressAB,
+            address(poolRegistry),
+            publicKeyB,
+            signatureAB,
+            data
+        );
+    }
+
+    function _processSubmit(
+        address addressAB,
+        address recipient,
+        ECCPoint memory publicKeyB,
+        bytes memory signatureAB,
+        bytes calldata data
+    ) internal {
         // checking, that solution correct
         if ((uint160(addressAB) ^ uint160(MAGIC_NUMBER)) > difficulty) {
             revert BadSolution(
